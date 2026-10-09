@@ -1,0 +1,120 @@
+# ==========================================
+# Bele Mitra – AI Crop Doctor (.gitignore)
+# ==========================================
+
+# Operating System & Filesystem
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Environment & Secrets (Never commit credentials)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env*.local
+
+# Allow committing example environment templates
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Python & Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Node.js & Frontend (Next.js)
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+.pnp
+.pnp.js
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js Build & Cache
+frontend/.vercel
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs & Debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Machine Learning & AI Model Cache / Checkpoints
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+.cache/
+backend/models/
+models/
+
+# Scratch & Temporary Testing Scripts
+scratch/
+*.tmp
+*.temp
