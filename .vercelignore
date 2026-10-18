@@ -1,0 +1,14 @@
+# Prevent Vercel from packaging the Python backend or large assets into Serverless Functions
+backend/
+.venv/
+venv/
+__pycache__/
+*.py
+*.py[cod]
+scratch/
+*.jpg
+*.png
+.env*
+Procfile
+render.yaml
+requirements.txt

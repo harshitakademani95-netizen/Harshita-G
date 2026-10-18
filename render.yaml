@@ -8,5 +8,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.8
+      - key: LOAD_REMOTE_HF_MODEL
+        value: "0"
       - key: GROQ_API_KEY
         sync: false
+
