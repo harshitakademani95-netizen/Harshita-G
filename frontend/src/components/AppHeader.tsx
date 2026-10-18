@@ -94,8 +94,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             className="flex items-center gap-3 cursor-pointer group"
             title="Go to Homepage / ಮುಖಪುಟಕ್ಕೆ ಹೋಗಿ"
           >
-            {/* Official Bela Mitra Logo - Preserving exact original aspect ratio */}
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white dark:bg-emerald-950/60 p-1 border border-emerald-200 dark:border-emerald-800 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            {/* Official Bela Mitra Logo - Perfect Circular Container */}
+            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full overflow-hidden bg-transparent flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform" style={{ borderRadius: '50%' }}>
               <img
                 src="/bela-mitra-logo.png"
                 alt="Bela Mitra Official Logo"

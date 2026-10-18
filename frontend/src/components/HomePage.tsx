@@ -178,7 +178,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="flex items-center gap-3 cursor-pointer group"
           >
-            <div className="h-11 w-11 rounded-2xl bg-white dark:bg-emerald-950/60 p-1 border border-emerald-200 dark:border-emerald-800 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <div className="h-11 w-11 rounded-full overflow-hidden bg-transparent flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform" style={{ borderRadius: '50%' }}>
               <img
                 src="/bela-mitra-logo.png"
                 alt="Bela Mitra Logo"
@@ -1093,7 +1093,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             {/* Column 1: Brand & Tagline */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white dark:bg-emerald-950/60 p-1 border border-emerald-200 dark:border-emerald-800 shadow-xs flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-full overflow-hidden bg-transparent flex items-center justify-center shrink-0" style={{ borderRadius: '50%' }}>
                   <img
                     src="/bela-mitra-logo.png"
                     alt="Bela Mitra Logo"

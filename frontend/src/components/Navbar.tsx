@@ -26,7 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white p-1 border border-emerald-200 shadow-xs flex items-center justify-center shrink-0">
+          <div className="h-10 w-10 rounded-full overflow-hidden bg-transparent flex items-center justify-center shrink-0" style={{ borderRadius: '50%' }}>
             <img
               src="/bela-mitra-logo.png"
               alt="Bela Mitra Logo"

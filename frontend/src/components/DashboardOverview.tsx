@@ -95,7 +95,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-green-700 dark:from-[#0d261d] dark:via-[#133a2c] dark:to-[#0f2d22] p-6 sm:p-8 text-white shadow-xl border border-emerald-600/30">
         <div className="relative z-10 max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 dark:bg-emerald-500/15 backdrop-blur-md border border-white/20 text-emerald-100 text-xs font-semibold mb-3">
-            <img src="/bela-mitra-logo.png" alt="Bela Mitra" className="w-4 h-4 object-contain" />
+            <img src="/bela-mitra-logo.png" alt="Bela Mitra" className="w-4 h-4 rounded-full object-contain" style={{ borderRadius: '50%' }} />
             <span>Bela Mitra – Where Intelligence Meets Agriculture</span>
           </div>
 

@@ -93,21 +93,24 @@ export const AIChatbotModule: React.FC = () => {
       return;
     }
 
-    // Request microphone permission gracefully
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaStreamRef.current = stream;
+    // Check microphone permission non-destructively without locking the device stream
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Release hardware immediately so SpeechRecognition can bind without collision
+        testStream.getTracks().forEach((track) => track.stop());
+      } catch (err: any) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          console.warn('Microphone permission denied:', err);
+          setVoiceError(
+            t(
+              'chat.micDenied',
+              'Microphone permission was denied. Please allow microphone access in your browser or type your question below.'
+            )
+          );
+          return;
+        }
       }
-    } catch (err: any) {
-      console.warn('Microphone permission denied or error:', err);
-      setVoiceError(
-        t(
-          'chat.micDenied',
-          'Microphone permission was denied. Please allow microphone access in your browser or type your question below.'
-        )
-      );
-      return;
     }
 
     try {
@@ -142,6 +145,22 @@ export const AIChatbotModule: React.FC = () => {
             )
           );
           stopVoiceRecording(false);
+        } else if (event.error === 'network') {
+          setVoiceError(
+            t(
+              'chat.networkError',
+              'Voice recognition network service unavailable. You can type your agriculture question directly.'
+            )
+          );
+          stopVoiceRecording(true);
+        } else if (event.error === 'audio-capture') {
+          setVoiceError(
+            t(
+              'chat.audioCaptureError',
+              'No microphone detected or audio capture is in use by another program.'
+            )
+          );
+          stopVoiceRecording(false);
         } else if (event.error !== 'no-speech') {
           setVoiceError(
             t(
@@ -154,10 +173,8 @@ export const AIChatbotModule: React.FC = () => {
 
       recognition.onend = () => {
         setIsRecording(false);
-        if (mediaStreamRef.current) {
-          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-        }
       };
+
 
       recognitionRef.current = recognition;
       recognition.start();

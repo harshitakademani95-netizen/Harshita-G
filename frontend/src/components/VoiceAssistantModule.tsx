@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import { useLanguage, LANGUAGES, SupportedLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
-import { sendChatMessage } from '@/lib/api';
+import { sendChatMessage, sendVoiceQuery } from '@/lib/api';
+
 
 interface SpokenTopic {
   id: string;
@@ -57,6 +58,8 @@ export const VoiceAssistantModule: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const speechResumeIntervalRef = useRef<any>(null);
+  const latestTranscriptRef = useRef<string>('');
 
   const langCodes: Record<SupportedLanguage, string> = {
     en: 'en-IN',
@@ -213,6 +216,13 @@ export const VoiceAssistantModule: React.FC = () => {
     ],
   };
 
+  const clearSpeechInterval = () => {
+    if (speechResumeIntervalRef.current) {
+      clearInterval(speechResumeIntervalRef.current);
+      speechResumeIntervalRef.current = null;
+    }
+  };
+
   // Ensure speech synthesis voice list is loaded
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -246,6 +256,11 @@ export const VoiceAssistantModule: React.FC = () => {
 
     try {
       window.speechSynthesis.cancel();
+      clearSpeechInterval();
+
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
 
       const utterance = new SpeechSynthesisUtterance(text);
       const targetLang = langCodes[language] || 'en-IN';
@@ -254,22 +269,37 @@ export const VoiceAssistantModule: React.FC = () => {
 
       // Find matching browser voice
       const voices = window.speechSynthesis.getVoices();
-      const matchedVoice =
-        voices.find((v) => v.lang.toLowerCase() === targetLang.toLowerCase()) ||
-        voices.find((v) => v.lang.toLowerCase().startsWith(targetLang.split('-')[0].toLowerCase())) ||
-        voices.find((v) => v.lang.toLowerCase().includes('in')) ||
-        null;
+      if (voices && voices.length > 0) {
+        const langPrefix = targetLang.split('-')[0].toLowerCase();
+        const matchedVoice =
+          voices.find((v) => v.lang.toLowerCase() === targetLang.toLowerCase()) ||
+          voices.find((v) => v.lang.toLowerCase().replace('_', '-').startsWith(langPrefix)) ||
+          voices.find((v) => v.lang.toLowerCase().includes('en-in') || v.lang.toLowerCase().includes('hi-in')) ||
+          voices.find((v) => v.lang.toLowerCase().startsWith('en')) ||
+          voices[0];
 
-      if (matchedVoice) {
-        utterance.voice = matchedVoice;
+        if (matchedVoice) {
+          utterance.voice = matchedVoice;
+        }
       }
 
       utterance.onstart = () => {
         setIsSpeaking(true);
         setIsPaused(false);
+        // Workaround for Chromium bug where speech pauses after 14s of continuous audio
+        clearSpeechInterval();
+        speechResumeIntervalRef.current = setInterval(() => {
+          if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+              window.speechSynthesis.pause();
+              window.speechSynthesis.resume();
+            }
+          }
+        }, 10000);
       };
 
       utterance.onend = () => {
+        clearSpeechInterval();
         setIsSpeaking(false);
         setIsPaused(false);
         setActivePlayingTopic(null);
@@ -278,25 +308,39 @@ export const VoiceAssistantModule: React.FC = () => {
         if (onFinish) onFinish();
       };
 
-      utterance.onerror = (e) => {
+      utterance.onerror = (e: any) => {
+        clearSpeechInterval();
+        // Ignore user-initiated cancellation/stop
+        if (e.error === 'canceled' || e.error === 'interrupted') return;
         console.warn('Speech synthesis error:', e);
         setIsSpeaking(false);
         setIsPaused(false);
         setActivePlayingTopic(null);
         setIsAnswerSpeaking(false);
         activeUtteranceRef.current = null;
+        setVoiceError(
+          t(
+            'voice.ttsPlaybackFailed',
+            'Browser audio playback could not complete on this device. The full guide text is displayed on screen.'
+          )
+        );
       };
 
       activeUtteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
       return true;
     } catch (err) {
       console.error('Speech synthesis initiation failed:', err);
+      clearSpeechInterval();
       return false;
     }
   };
 
   const stopAllSpeech = () => {
+    clearSpeechInterval();
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -360,10 +404,6 @@ export const VoiceAssistantModule: React.FC = () => {
           recognitionRef.current.stop();
         } catch (_) {}
       }
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-      }
       setIsListening(false);
       return;
     }
@@ -383,21 +423,24 @@ export const VoiceAssistantModule: React.FC = () => {
       return;
     }
 
-    // Request microphone access
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaStreamRef.current = stream;
+    // Check microphone permission non-destructively without locking the device stream
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Release hardware immediately so SpeechRecognition can bind without collision
+        testStream.getTracks().forEach((track) => track.stop());
+      } catch (err: any) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          console.warn('Microphone permission denied:', err);
+          setVoiceError(
+            t(
+              'voice.micDenied',
+              'Microphone permission was denied. Please allow microphone access in your browser or type your question below.'
+            )
+          );
+          return;
+        }
       }
-    } catch (err) {
-      console.warn('Microphone permission denied:', err);
-      setVoiceError(
-        t(
-          'voice.micDenied',
-          'Microphone permission was denied. Please allow microphone access in your browser or type your question below.'
-        )
-      );
-      return;
     }
 
     try {
@@ -409,12 +452,16 @@ export const VoiceAssistantModule: React.FC = () => {
       recognition.onstart = () => {
         setIsListening(true);
         setTranscript('');
+        latestTranscriptRef.current = '';
       };
 
       recognition.onresult = (event: any) => {
-        const current = event.resultIndex;
-        const text = event.results[current][0].transcript;
-        setTranscript(text);
+        let fullTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(fullTranscript);
+        latestTranscriptRef.current = fullTranscript;
       };
 
       recognition.onerror = (event: any) => {
@@ -425,6 +472,20 @@ export const VoiceAssistantModule: React.FC = () => {
             t(
               'voice.micDenied',
               'Microphone permission was denied. Please allow microphone access in your browser or type your question below.'
+            )
+          );
+        } else if (event.error === 'network') {
+          setVoiceError(
+            t(
+              'voice.networkError',
+              'Voice recognition network error. Please check internet connection or type your question below.'
+            )
+          );
+        } else if (event.error === 'audio-capture') {
+          setVoiceError(
+            t(
+              'voice.audioCaptureError',
+              'No microphone detected or audio capture is blocked. Please check your microphone or type below.'
             )
           );
         } else if (event.error !== 'no-speech') {
@@ -439,9 +500,9 @@ export const VoiceAssistantModule: React.FC = () => {
 
       recognition.onend = () => {
         setIsListening(false);
-        if (mediaStreamRef.current) {
-          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-          mediaStreamRef.current = null;
+        const finalSpoken = latestTranscriptRef.current.trim();
+        if (finalSpoken && !loading) {
+          handleAsk(finalSpoken);
         }
       };
 
@@ -464,10 +525,12 @@ export const VoiceAssistantModule: React.FC = () => {
     stopAllSpeech();
 
     try {
-      const res = await sendChatMessage(q, language, 'Tomato');
+      const res = await sendVoiceQuery(q, language, 'Tomato');
       setAiResponse(res.response);
       setDisclaimer(res.disclaimer);
       setManualInput('');
+      setTranscript('');
+      latestTranscriptRef.current = '';
       success('AI Advisory Ready', 'Audio playback starting.');
 
       // Automatically speak the response
@@ -485,6 +548,7 @@ export const VoiceAssistantModule: React.FC = () => {
       setLoading(false);
     }
   };
+
 
   const handleToggleAnswerSpeech = () => {
     if (!aiResponse) return;
