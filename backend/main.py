@@ -5,12 +5,18 @@ Modular, robust, CORS-enabled REST API serving all agricultural intelligence mod
 """
 
 import os
+import sys
 from typing import Optional, List
+
+# Ensure backend directory is in sys.path when running from repository root or subfolder
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from knowledge_base import DISEASE_DATABASE, CROP_SOIL_PROFILES, SOIL_MICROORGANISMS
+
 from translations_data import DISEASE_TRANSLATIONS
 from disease_model import disease_classifier
 from soil_service import soil_service
